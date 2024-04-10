@@ -1,22 +1,46 @@
-const { test, expect } = require("@playwright/test");
+import { test, expect } from '@playwright/test';
+import { userData } from '../user';
 
-test("test", async ({ page }) => {
-  // Go to https://netology.ru/free/management#/
-  await page.goto("https://netology.ru/free/management#/");
+test('Successful authorization', async ({ page }) => {
+  // Открываем форму авторизации
+  await page.goto('https://netology.ru/?modal=sign_in');
+  
+  // Вводим email и пароль из констант
+  await page.fill('input[name="email"]', userData.email);
+  await page.fill('input[name="password"]', userData.password);
+  
+  // Нажимаем на кнопку "Войти"
+  await page.click('[data-testid="login-submit-btn"]');
 
-  // Click a
-  await page.click("a");
-  await expect(page).toHaveURL("https://netology.ru/");
+  //Ждем загрузки страницы профиля
+  await page.waitForURL('https://netology.ru/profile/8832522', { timeout: 60000 });
+  
+ // Проверяем, что открылась страница открылась с заголовком "Моё обучение"
+ const profilePageTitleElement = await page.locator('h2');
+ const profilePageTitle = await profilePageTitleElement.innerText();
+ expect(profilePageTitle).toContain('Моё обучение');
 
-  // Click text=Учиться бесплатно
-  await page.click("text=Учиться бесплатно");
-  await expect(page).toHaveURL("https://netology.ru/free");
+});
 
-  page.click("text=Бизнес и управление");
-
-  // Click text=Как перенести своё дело в онлайн
-  await page.click("text=Как перенести своё дело в онлайн");
-  await expect(page).toHaveURL(
-    "https://netology.ru/programs/kak-perenesti-svoyo-delo-v-onlajn-bp"
-  );
+test('Unsuccessful authorization', async ({ page }) => {
+  // Открываем  страницу авторизации
+  await page.goto('https://netology.ru/?modal=sign_in');
+  
+  // Заполняем поле email
+  await page.fill('input[name="email"]', 'test@gmail.com');
+  
+  // Заполняем поле password
+  await page.fill('input[name="password"]', 'test');
+  
+  // Нажимаем кнопку "Войти"
+  await page.click('[data-testid="login-submit-btn"]');
+  
+  // Ждем появления сообщения об ошибке
+  await page.waitForSelector('[data-testid="login-error-hint"]');
+  
+  // Получаем текст сообщения об ошибке
+  const errorMessage = await page.textContent('[data-testid="login-error-hint"]');
+  
+  // Проверяем, содержит ли сообщение определенный текст
+  expect(errorMessage).toContain('Вы ввели неправильно логин или пароль');
 });
